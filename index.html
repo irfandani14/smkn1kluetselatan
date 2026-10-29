@@ -613,7 +613,7 @@
           <form onsubmit="handleSaveConfig(event)" class="flex flex-col gap-3">
             <div>
               <label class="text-xs text-slate-700 dark:text-slate-300 mb-1 block">SUPABASE URL</label>
-              <input type="text" id="cfg-url" placeholder="https://aqwwcrxbsuyytseykfqi.supabase.co" class="w-full bg-slate-50 border-slate-300 dark:bg-slate-950 dark:border-slate-800 border rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono">
+              <input type="text" id="cfg-url" placeholder="https://qrximacellkucdmujher.supabase.co" class="w-full bg-slate-50 border-slate-300 dark:bg-slate-950 dark:border-slate-800 border rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono">
             </div>
             <div>
               <label class="text-xs text-slate-700 dark:text-slate-300 mb-1 block">SUPABASE ANON KEY</label>
@@ -658,7 +658,7 @@
               </div>
               <div>
                 <label class="text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 mb-1 block">Jam Pulang</label>
-                <input type="time" id="cfg-time-pulang" required class="w-full bg-slate-50 border-slate-300 dark:bg-slate-950 dark:border-slate-800 border rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono font-mono">
+                <input type="time" id="cfg-time-pulang" required class="w-full bg-slate-50 border-slate-300 dark:bg-slate-950 dark:border-slate-800 border rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono">
               </div>
               <div class="col-span-2 sm:col-span-1">
                 <label class="text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 mb-1 block">Akhir Pulang</label>
@@ -830,8 +830,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.attendances;
   <!-- JAVASCRIPT LOGIC ENGINE -->
   <script>
     // --- DEFAULT KREDENSIAL SUPABASE ---
-    const DEFAULT_SUPABASE_URL = 'https://aqwwcrxbsuyytseykfqi.supabase.co';
-    const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxd3djcnhic3V5eXRzZXlrZnFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNDczMTYsImV4cCI6MjEwNzcyMzMxNn0.FQ_mqmHmRYX7dGPEUxxbXQ_WyCyu__cmDm8NyckwhoM';
+    const DEFAULT_SUPABASE_URL = 'https://qrximacellkucdmujher.supabase.co/rest/v1/';
+    const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyeGltYWNlbGxrdWNkbXVqaGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyODY5NjAsImV4cCI6MjEwODg2Mjk2MH0.cfSdrVxmqAxi5FZgj-ypsP-Loff4Al9gq0HBXXNoA9E';
 
     // --- KOORDINAT SMKN 1 KLUET SELATAN & KONFIGURASI GPS ---
     const SCHOOL_LAT = 3.059333629416514;
@@ -1286,21 +1286,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.attendances;
           roleBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold font-mono';
         }
       }
-    }
-
-    function toggleFullScreen() {
-      const icon = document.getElementById('fullscreen-icon');
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().then(() => {
-          if (icon) icon.className = 'fa-solid fa-compress';
-        }).catch(err => {});
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().then(() => {
-            if (icon) icon.className = 'fa-solid fa-expand';
-          });
-        }
-      }
+      // Perbarui tampilan footer geofencing sesuai role
+      updateKhususBannerUI();
     }
 
     function logoutApp() {
@@ -1805,28 +1792,33 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.attendances;
 
       // --- ALUR MODE PRESENSI REGULER (DENGAN GPS 300 METER) ---
 
-      // 1. VERIFIKASI LOKASI GPS (RADIUS MAKSIMAL 300 METER SEKOLAH)
-      if (!userLocation) {
-        if (lastSpokenStudentId !== student.id || (Date.now() - lastSpokenTime) >= 8000) {
-          showToastError(student, timeStr, 'GPS Belum Aktif', 'Aktifkan GPS Perangkat Anda');
-          playErrorChime();
-          speakText('anda berada diluar sekolah, harap datang ke sekolah untuk presensi');
-          lastSpokenStudentId = student.id;
-          lastSpokenTime = Date.now();
-        }
-        return;
-      }
+      // Check apakah role mendapat bypass GPS (Admin & Kepala Sekolah)
+      const isGpsBypassed = (currentRole === 'admin' || currentRole === 'kepsek');
 
-      if (!userLocation.isWithinRadius) {
-        if (lastSpokenStudentId !== student.id || (Date.now() - lastSpokenTime) >= 8000) {
-          const distStr = userLocation.distance < 1 ? `${Math.round(userLocation.distance * 1000)}m` : `${userLocation.distance.toFixed(2)}km`;
-          showToastError(student, timeStr, 'Di Luar Radius Sekolah', `Jarak: ${distStr} (Maks 300 Meter)`);
-          playErrorChime();
-          speakText('anda berada diluar sekolah, harap datang ke sekolah untuk presensi');
-          lastSpokenStudentId = student.id;
-          lastSpokenTime = Date.now();
+      if (!isGpsBypassed) {
+        // 1. VERIFIKASI LOKASI GPS (RADIUS MAKSIMAL 300 METER SEKOLAH UNTUK ROLE PIKET/SISWA)
+        if (!userLocation) {
+          if (lastSpokenStudentId !== student.id || (Date.now() - lastSpokenTime) >= 8000) {
+            showToastError(student, timeStr, 'GPS Belum Aktif', 'Aktifkan GPS Perangkat Anda');
+            playErrorChime();
+            speakText('anda berada diluar sekolah, harap datang ke sekolah untuk presensi');
+            lastSpokenStudentId = student.id;
+            lastSpokenTime = Date.now();
+          }
+          return;
         }
-        return;
+
+        if (!userLocation.isWithinRadius) {
+          if (lastSpokenStudentId !== student.id || (Date.now() - lastSpokenTime) >= 8000) {
+            const distStr = userLocation.distance < 1 ? `${Math.round(userLocation.distance * 1000)}m` : `${userLocation.distance.toFixed(2)}km`;
+            showToastError(student, timeStr, 'Di Luar Radius Sekolah', `Jarak: ${distStr} (Maks 300 Meter)`);
+            playErrorChime();
+            speakText('anda berada diluar sekolah, harap datang ke sekolah untuk presensi');
+            lastSpokenStudentId = student.id;
+            lastSpokenTime = Date.now();
+          }
+          return;
+        }
       }
 
       // 2. VERIFIKASI JAM OPERASIONAL SEKOLAH
